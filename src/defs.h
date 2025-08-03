@@ -58,6 +58,9 @@ enum { FALSE, TRUE };
 
 enum { WKCA = 1, WQCA = 2, BKCA = 4, BQCA = 8 };
 
+//const int PieceWhite[7] = { EMPTY, wP, wN, wB, wR, wQ, wK }; //TODO: ADDED
+//const int PieceBlack[7] = { EMPTY, bP, bN, bB, bR, bQ, bK }; //TODO: ADDED
+
 typedef struct {
 	int move;
 	int score;
@@ -101,6 +104,7 @@ typedef struct {
 
 	int pieces[BRD_SQ_NUM];
 	U64 pawns[3];
+	//U64 occupied[3]; //TODO:ADDED
 
 	int KingSq[2];
 

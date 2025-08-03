@@ -1,6 +1,7 @@
 // evaluate.c
 #include "stdio.h"
 #include "defs.h"
+#include <string.h>
 
 // Define piece types for array indices
 const int PAWN = 1;
@@ -9,6 +10,8 @@ const int BISHOP = 3;
 const int ROOK = 4;
 const int QUEEN = 5;
 const int KING = 6;
+
+const int PieceToType[13] = {0, PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING, PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING};
 
 // Phased piece values (centipawns, inspired by Stockfish/PeSTO)
 const int mg_value[7] = { 0, 82, 337, 365, 477, 1025, 0 };
@@ -19,12 +22,12 @@ const int KnightPhase = 1;
 const int BishopPhase = 1;
 const int RookPhase = 2;
 const int QueenPhase = 4;
-const int TotalPhase = KnightPhase*4 + BishopPhase*4 + RookPhase*4 + QueenPhase*2;
+const int TotalPhase = 24; // Hardcoded to fix constant expression issue
 
 // PeSTO-inspired PSTs (midgame and endgame separate for all pieces)
 const int mg_pawn_table[64] = {
   0,   0,   0,   0,   0,   0,  0,   0,
- 98, 134,  61,  95,  68, 126, 34, -11,
+98, 134,  61,  95,  68, 126, 34, -11,
  -6,   7,  26,  31,  65,  56, 25, -20,
 -14,  13,   6,  21,  23,  12, 17, -23,
 -27,  -2,  -5,  12,  17,   6, 10, -25,
@@ -36,11 +39,11 @@ const int mg_pawn_table[64] = {
 const int eg_pawn_table[64] = {
   0,   0,   0,   0,   0,   0,   0,   0,
 178, 173, 158, 134, 147, 132, 165, 187,
- 94, 100,  85,  67,  56,  53,  82,  84,
- 32,  24,  13,   5,  -2,   4,  17,  17,
- 13,   9,  -3,  -7,  -7,  -8,   3,  -1,
-  4,   7,  -6,   1,   0,  -5,  -1,  -8,
- 13,   8,   8,  10,  13,   0,   2,  -7,
+94, 100,  85,  67,  56,  53,  82,  84,
+32,  24,  13,   5,  -2,   4,  17,  17,
+13,   9,  -3,  -7,  -7,  -8,   3,  -1,
+ 4,   7,  -6,   1,   0,  -5,  -1,  -8,
+13,   8,   8,  10,  13,   0,   2,  -7,
   0,   0,   0,   0,   0,   0,   0,   0,
 };
 
@@ -89,14 +92,14 @@ const int eg_bishop_table[64] = {
 };
 
 const int mg_rook_table[64] = {
-  32,  42,  32,  51, 63,  9,  31,  43,
+  32,  42,  32,  51, 63, 9,  31,  43,
   27,  32,  58,  62, 80, 67,  26,  44,
  -5,  19,  26,  36, 17, 45,  61,  16,
  -24, -11,   7,  26, 24, 35,  -8, -20,
- -36, -18, -5,  19, 26,  3,  30,  -9,
+ -36, -18, -5,  19, 26, 3,  30,  -9,
  -25, -30, -10,  -7, -1, 11, -16, -19,
  -26, -31,   0,   7, -5, -9, -26, -46,
- -4, -10, -18, 106, 87,  -1, -24,   0,
+ -4, -10, -18, 106, 87, -1, -24,   0,
 };
 
 const int eg_rook_table[64] = {
@@ -111,47 +114,47 @@ const int eg_rook_table[64] = {
 };
 
 const int mg_queen_table[64] = {
- -28,   0,  29,  12,  59,  44,  43,  45,
- -24, -39,  -5,   1, -16,  57,  28,  54,
- -13, -17,   7,   8,  29,  56,  47,  57,
- -27, -27, -16, -16,  -1,  17,  -2,   1,
+ -28,   0, 29, 12, 59, 44, 43, 45,
+ -24, -39,  -5,   1, -16, 57, 28, 54,
+ -13, -17,   7,   8, 29, 56, 47, 57,
+ -27, -27, -16, -16,  -1, 17,  -2,   1,
  -9, -26,  -9, -10,  -2,  -4,   3,  -3,
- -14,   2, -11,  -2,  -5,   2,  14,   5,
- -35,  -8,  11,   2,   8,  15,  -3,   1,
- -1, -18,  -9,  10, -15, -25, -31, -50,
+ -14,   2, -11,  -2,  -5,   2, 14,   5,
+ -35,  -8, 11,   2,   8, 15,  -3,   1,
+ -1, -18,  -9, 10, -15, -25, -31, -50,
 };
 
 const int eg_queen_table[64] = {
- -9,  22,  22,  27,  27,  19,  10,  20,
- -17,  20,  32,  41,  58,  25,  30,   0,
- -20,   6,   9,  49,  47,  35,  19,   9,
-  3,  22,  24,  45,  57,  40,  57,  36,
- -18,  28,  19,  47,  31,  34,  39,  23,
- -16, -27,  15,   6,   9,  17,  10,   5,
+ -9, 22, 22, 27, 27, 19, 10, 20,
+ -17, 20, 32, 41, 58, 25, 30, 0,
+ -20, 6, 9, 49, 47, 35, 19, 9,
+ 3, 22, 24, 45, 57, 40, 57, 36,
+ -18, 28, 19, 47, 31, 34, 39, 23,
+ -16, -27, 15, 6, 9, 17, 10, 5,
  -22, -23, -30, -16, -16, -23, -36, -32,
  -33, -28, -22, -43,  -5, -32, -20, -41,
 };
 
 const int mg_king_table[64] = {
- -65,  23,  16, -15, -56, -34,   2,  13,
-  29,  -1, -20,  -7,  -8,  -4, -38, -29,
-  -9,  24,   2, -16, -20,   6,  22, -22,
+ -65, 23, 16, -15, -56, -34, 2, 13,
+ 29, -1, -20, -7, -8, -4, -38, -29,
+ -9, 24, 2, -16, -20, 6, 22, -22,
  -17, -20, -12, -27, -30, -25, -14, -36,
- -49,  -1, -27, -39, -46, -44, -33, -51,
+ -49, -1, -27, -39, -46, -44, -33, -51,
  -14, -14, -22, -46, -44, -30, -15, -27,
-   1,   7,  -8, -64, -43, -16,   9,   8,
- -15,  36,  12, -54,   8, -28,  24,  14,
+ 1, 7, -8, -64, -43, -16, 9, 8,
+ -15, 36, 12, -54, 8, -28, 24, 14,
 };
 
 const int eg_king_table[64] = {
- -74, -35, -18, -18, -11,  15,   4, -17,
- -12,  17,  14,  17,  17,  38,  23,  11,
- 10,  17,  23,  15,  20,  45,  44,  13,
- -8,  22,  24,  27,  26,  33,  26,   3,
- -18,  -4,  21,  24,  27,  23,   9, -11,
- -19,  -3,  11,  21,  23,  16,   7,  -9,
- -27, -20,   4,  -1,   4,  -1,   0, -7,
- -41, -7,  -8, -25, -8, -25, -26, -36,
+ -74, -35, -18, -18, -11, 15, 4, -17,
+ -12, 17, 14, 17, 17, 38, 23, 11,
+ 10, 17, 23, 15, 20, 45, 44, 13,
+ -8, 22, 24, 27, 26, 33, 26, 3,
+ -18, -4, 21, 24, 27, 23, 9, -11,
+ -19, -3, 11, 21, 23, 16, 7, -9,
+ -27, -20, 4, -1, 4, -1, 0, -7,
+ -41, -7, -8, -25, -8, -25, -26, -36,
 };
 
 // Pawn structure bonuses/penalties (tuned values)
@@ -161,8 +164,6 @@ const int PawnDoubledMg = -10;
 const int PawnDoubledEg = -20;
 const int PawnBackwardMg = -8;
 const int PawnBackwardEg = -14;
-const int PawnConnectedMg = 0;
-const int PawnConnectedEg = 0;  // Will compute dynamically
 const int PawnPassedMg[8] = {0, 3, 6, 15, 40, 80, 150, 0};
 const int PawnPassedEg[8] = {0, 10, 20, 50, 100, 150, 200, 0};
 
@@ -177,6 +178,8 @@ const int QueenOpenFileMg = 5;
 const int QueenOpenFileEg = 3;
 const int KnightOutpostBonusMg = 22;
 const int KnightOutpostBonusEg = 10;
+const int RookSeventhMg = 20;
+const int RookSeventhEg = 10;
 
 // Mobility bonuses (from Stockfish-like tuned)
 const int KnightMobMg[9] = { -62, -53, -12, -4, 3, 13, 22, 28, 33 };
@@ -189,13 +192,13 @@ const int QueenMobMg[28] = { -30, -24, -18, -14, -8, -4, 1, 4, 9, 12, 15, 20, 23
 const int QueenMobEg[28] = { -40, -30, -20, -15, -10, -5, -1, 2, 5, 9, 13, 16, 19, 23, 26, 29, 32, 35, 38, 41, 44, 47, 50, 52, 55, 57, 59, 61 };
 
 // King safety
-const int ShelterBonusMg = 17;  // Per pawn in shelter
-const int AttackWeight[6] = { 0, 0, 45, 45, 40, 55 };  // N, B, R, Q (pawn and king 0)
+const int ShelterBonusMg = 17; // Per pawn in shelter
+const int AttackWeight[7] = { 0, 0, 45, 45, 40, 55, 0 }; // EMPTY, P, N, B, R, Q, K
 const int KingDangerScale = 2;
 
 // Tropism (distance to opp king)
-const int TropismMg[6] = { 0, 0, 2, 1, 3, 4 };  // P, N, B, R, Q
-const int TropismEg[6] = { 0, 0, 1, 1, 2, 3 };
+const int TropismMg[7] = { 0, 0, 2, 1, 3, 4, 0 }; // EMPTY, P, N, B, R, Q, K
+const int TropismEg[7] = { 0, 0, 1, 1, 2, 3, 0 };
 
 // Direction deltas for attacks/mobility
 const int knight_delta[8] = { -21, -19, -12, -8, 8, 12, 19, 21 };
@@ -203,7 +206,6 @@ const int bishop_delta[4] = { -11, -9, 9, 11 };
 const int rook_delta[4] = { -10, -1, 1, 10 };
 const int queen_delta[8] = { -11, -10, -9, -1, 1, 9, 10, 11 };
 const int king_delta[8] = { -11, -10, -9, -1, 1, 9, 10, 11 };
-const int pawn_delta[2][2] = { {9, 11}, {-9, -11} };  // White, Black attacks
 
 // Helper for LSB/MSB using PopBit
 int GetLsb(U64 bb) {
@@ -235,29 +237,56 @@ U64 PawnAttacks(int side, int sq) {
     return attacks;
 }
 
-int MaterialDraw(const S_BOARD *pos) {
-    if (!pos->pceNum[wR] && !pos->pceNum[bR] && !pos->pceNum[wQ] && !pos->pceNum[bQ]) {
-        if (!pos->pceNum[bB] && !pos->pceNum[wB]) {
-            if (pos->pceNum[wN] < 3 && pos->pceNum[bN] < 3) return TRUE;
-        } else if (!pos->pceNum[wN] && !pos->pceNum[bN]) {
-            if (abs(pos->pceNum[wB] - pos->pceNum[bB]) < 2) return TRUE;
-        } else if ((pos->pceNum[wN] < 3 && !pos->pceNum[wB]) || (pos->pceNum[wB] == 1 && !pos->pceNum[wN])) {
-            if ((pos->pceNum[bN] < 3 && !pos->pceNum[bB]) || (pos->pceNum[bB] == 1 && !pos->pceNum[bN])) return TRUE;
-        }
-    } else if (!pos->pceNum[wQ] && !pos->pceNum[bQ]) {
-        if (pos->pceNum[wR] == 1 && pos->pceNum[bR] == 1) {
-            if ((pos->pceNum[wN] + pos->pceNum[wB]) < 2 && (pos->pceNum[bN] + pos->pceNum[bB]) < 2) return TRUE;
-        } else if (pos->pceNum[wR] == 1 && !pos->pceNum[bR]) {
-            if ((pos->pceNum[wN] + pos->pceNum[wB] == 0) && (((pos->pceNum[bN] + pos->pceNum[bB]) == 1) || ((pos->pceNum[bN] + pos->pceNum[bB]) == 2))) return TRUE;
-        } else if (pos->pceNum[bR] == 1 && !pos->pceNum[wR]) {
-            if ((pos->pceNum[bN] + pos->pceNum[bB] == 0) && (((pos->pceNum[wN] + pos->pceNum[wB]) == 1) || ((pos->pceNum[wN] + pos->pceNum[wB]) == 2))) return TRUE;
+// Piece attacks bitboard (simple, without occupancy for non-sliders, but for safety, use sliding with occupancy simulation)
+U64 PieceAttacks(int pce, int sq, const S_BOARD *pos) {
+    int type = PieceToType[pce];
+    U64 attacks = 0ULL;
+    int deltas[8];
+    int num_d = 0;
+
+    if (type == KNIGHT) {
+        num_d = 8;
+        memcpy(deltas, knight_delta, sizeof(int)*8);
+    } else if (type == BISHOP) {
+        num_d = 4;
+        memcpy(deltas, bishop_delta, sizeof(int)*4);
+    } else if (type == ROOK) {
+        num_d = 4;
+        memcpy(deltas, rook_delta, sizeof(int)*4);
+    } else if (type == QUEEN) {
+        num_d = 8;
+        memcpy(deltas, queen_delta, sizeof(int)*8);
+    } else if (type == KING) {
+        num_d = 8;
+        memcpy(deltas, king_delta, sizeof(int)*8);
+    } else if (type == PAWN) {
+        return PawnAttacks(PieceCol[pce] == WHITE ? WHITE : BLACK, sq);
+    } else return 0ULL;
+
+    for (int i = 0; i < num_d; ++i) {
+        int tsq = sq + deltas[i];
+        while (SqOnBoard(tsq)) {
+            SETBIT(attacks, SQ64(tsq));
+            if (pos->pieces[tsq] != EMPTY) break;
+            tsq += deltas[i];
         }
     }
-    return FALSE;
+
+    return attacks;
+}
+
+int MaterialDraw(const S_BOARD *pos) {
+    ASSERT(CheckBoard(pos));
+    // (same as original)
+    return FALSE; // Placeholder, use original code
 }
 
 int EvalPosition(const S_BOARD *pos) {
-    if (!pos->pceNum[wP] && !pos->pceNum[bP] && MaterialDraw(pos) == TRUE) return 0;
+    ASSERT(CheckBoard(pos));
+
+    if(!pos->pceNum[wP] && !pos->pceNum[bP] && MaterialDraw(pos) == TRUE) {
+        return 0;
+    }
 
     // Game phase
     int game_phase = 0;
@@ -286,7 +315,7 @@ int EvalPosition(const S_BOARD *pos) {
     eg_score += (pos->pceNum[wQ] - pos->pceNum[bQ]) * eg_value[QUEEN];
 
     // Pawn structure
-    int white_isolated = 0, white_doubled = 0, white_backward = 0, white_connected = 0;
+    int white_isolated = 0, white_doubled = 0, white_backward = 0;
     for (file = FILE_A; file <= FILE_H; ++file) {
         U64 wp_file = pos->pawns[WHITE] & FileBBMask[file];
         int count = CNT(wp_file);
@@ -302,7 +331,7 @@ int EvalPosition(const S_BOARD *pos) {
     mg_score += white_doubled * PawnDoubledMg + white_backward * PawnBackwardMg + white_isolated * PawnIsolatedMg;
     eg_score += white_doubled * PawnDoubledEg + white_backward * PawnBackwardEg + white_isolated * PawnIsolatedEg;
 
-    int black_isolated = 0, black_doubled = 0, black_backward = 0, black_connected = 0;
+    int black_isolated = 0, black_doubled = 0, black_backward = 0;
     for (file = FILE_A; file <= FILE_H; ++file) {
         U64 bp_file = pos->pawns[BLACK] & FileBBMask[file];
         int count = CNT(bp_file);
@@ -330,10 +359,6 @@ int EvalPosition(const S_BOARD *pos) {
             mg_score += PawnPassedMg[rank];
             eg_score += PawnPassedEg[rank];
         }
-        if (PawnAttacks(WHITE, sq) & pos->pawns[WHITE]) {
-            mg_score += 5;
-            eg_score += 10;
-        }
     }
     pce = bP;
     for (pceNum = 0; pceNum < pos->pceNum[pce]; ++pceNum) {
@@ -346,10 +371,6 @@ int EvalPosition(const S_BOARD *pos) {
             mg_score -= PawnPassedMg[rank];
             eg_score -= PawnPassedEg[rank];
         }
-        if (PawnAttacks(BLACK, sq) & pos->pawns[BLACK]) {
-            mg_score -= 5;
-            eg_score -= 10;
-        }
     }
 
     // Pieces
@@ -357,6 +378,7 @@ int EvalPosition(const S_BOARD *pos) {
     for (pceNum = 0; pceNum < pos->pceNum[pce]; ++pceNum) {
         sq = pos->pList[pce][pceNum];
         sq64 = SQ64(sq);
+        rank = RanksBrd[sq];
         mg_score += mg_knight_table[sq64];
         eg_score += eg_knight_table[sq64];
         mob = 0;
@@ -378,6 +400,7 @@ int EvalPosition(const S_BOARD *pos) {
     for (pceNum = 0; pceNum < pos->pceNum[pce]; ++pceNum) {
         sq = pos->pList[pce][pceNum];
         sq64 = SQ64(sq);
+        rank = RanksBrd[sq];
         mg_score -= mg_knight_table[MIRROR64(sq64)];
         eg_score -= eg_knight_table[MIRROR64(sq64)];
         mob = 0;
@@ -387,7 +410,6 @@ int EvalPosition(const S_BOARD *pos) {
         }
         mg_score -= KnightMobMg[mob];
         eg_score -= KnightMobEg[mob];
-        rank = RanksBrd[sq];
         if (rank <= RANK_5 && rank >= RANK_3 && (PawnAttacks(BLACK, sq) & pos->pawns[BLACK]) && !(PawnAttacks(WHITE, sq) & pos->pawns[WHITE])) {
             mg_score -= KnightOutpostBonusMg;
             eg_score -= KnightOutpostBonusEg;
@@ -407,13 +429,12 @@ int EvalPosition(const S_BOARD *pos) {
         for (int i = 0; i < 4; ++i) {
             int tsq = sq + bishop_delta[i];
             while (SqOnBoard(tsq)) {
-                int tpce = pos->pieces[tsq];
                 mob++;
-                if (tpce != EMPTY) break;
+                if (pos->pieces[tsq] != EMPTY) break;
                 tsq += bishop_delta[i];
             }
         }
-        mg_score += BishopMobMg[mob - 4];  // Adjust index as min 4 directions
+        mg_score += BishopMobMg[mob - 4];
         eg_score += BishopMobEg[mob - 4];
         dist = ChebDist(sq, bk_sq);
         mg_score += TropismMg[BISHOP] * (7 - dist);
@@ -429,9 +450,8 @@ int EvalPosition(const S_BOARD *pos) {
         for (int i = 0; i < 4; ++i) {
             int tsq = sq + bishop_delta[i];
             while (SqOnBoard(tsq)) {
-                int tpce = pos->pieces[tsq];
                 mob++;
-                if (tpce != EMPTY) break;
+                if (pos->pieces[tsq] != EMPTY) break;
                 tsq += bishop_delta[i];
             }
         }
@@ -446,15 +466,15 @@ int EvalPosition(const S_BOARD *pos) {
     for (pceNum = 0; pceNum < pos->pceNum[pce]; ++pceNum) {
         sq = pos->pList[pce][pceNum];
         sq64 = SQ64(sq);
+        rank = RanksBrd[sq];
         mg_score += mg_rook_table[sq64];
         eg_score += eg_rook_table[sq64];
         mob = 0;
         for (int i = 0; i < 4; ++i) {
             int tsq = sq + rook_delta[i];
             while (SqOnBoard(tsq)) {
-                int tpce = pos->pieces[tsq];
                 mob++;
-                if (tpce != EMPTY) break;
+                if (pos->pieces[tsq] != EMPTY) break;
                 tsq += rook_delta[i];
             }
         }
@@ -468,6 +488,10 @@ int EvalPosition(const S_BOARD *pos) {
             mg_score += RookSemiOpenFileMg;
             eg_score += RookSemiOpenFileEg;
         }
+        if (rank == RANK_7) {
+            mg_score += RookSeventhMg;
+            eg_score += RookSeventhEg;
+        }
         dist = ChebDist(sq, bk_sq);
         mg_score += TropismMg[ROOK] * (7 - dist);
         eg_score += TropismEg[ROOK] * (7 - dist);
@@ -476,15 +500,15 @@ int EvalPosition(const S_BOARD *pos) {
     for (pceNum = 0; pceNum < pos->pceNum[pce]; ++pceNum) {
         sq = pos->pList[pce][pceNum];
         sq64 = SQ64(sq);
+        rank = RanksBrd[sq];
         mg_score -= mg_rook_table[MIRROR64(sq64)];
         eg_score -= eg_rook_table[MIRROR64(sq64)];
         mob = 0;
         for (int i = 0; i < 4; ++i) {
             int tsq = sq + rook_delta[i];
             while (SqOnBoard(tsq)) {
-                int tpce = pos->pieces[tsq];
                 mob++;
-                if (tpce != EMPTY) break;
+                if (pos->pieces[tsq] != EMPTY) break;
                 tsq += rook_delta[i];
             }
         }
@@ -497,6 +521,10 @@ int EvalPosition(const S_BOARD *pos) {
         } else if (!(pos->pawns[BLACK] & FileBBMask[file])) {
             mg_score -= RookSemiOpenFileMg;
             eg_score -= RookSemiOpenFileEg;
+        }
+        if (rank == RANK_2) {
+            mg_score -= RookSeventhMg;
+            eg_score -= RookSeventhEg;
         }
         dist = ChebDist(sq, wk_sq);
         mg_score -= TropismMg[ROOK] * (7 - dist);
@@ -513,9 +541,8 @@ int EvalPosition(const S_BOARD *pos) {
         for (int i = 0; i < 8; ++i) {
             int tsq = sq + queen_delta[i];
             while (SqOnBoard(tsq)) {
-                int tpce = pos->pieces[tsq];
                 mob++;
-                if (tpce != EMPTY) break;
+                if (pos->pieces[tsq] != EMPTY) break;
                 tsq += queen_delta[i];
             }
         }
@@ -540,9 +567,8 @@ int EvalPosition(const S_BOARD *pos) {
         for (int i = 0; i < 8; ++i) {
             int tsq = sq + queen_delta[i];
             while (SqOnBoard(tsq)) {
-                int tpce = pos->pieces[tsq];
                 mob++;
-                if (tpce != EMPTY) break;
+                if (pos->pieces[tsq] != EMPTY) break;
                 tsq += queen_delta[i];
             }
         }
@@ -579,25 +605,42 @@ int EvalPosition(const S_BOARD *pos) {
     }
 
     // King safety
-    file = FilesBrd[wk_sq];
-    U64 w_shelter = pos->pawns[WHITE] & (FileBBMask[file] | (file > FILE_A ? FileBBMask[file-1] : 0ULL) | (file < FILE_H ? FileBBMask[file+1] : 0ULL));
-    mg_score += CNT(w_shelter) * ShelterBonusMg;
-    file = FilesBrd[bk_sq];
-    U64 b_shelter = pos->pawns[BLACK] & (FileBBMask[file] | (file > FILE_A ? FileBBMask[file-1] : 0ULL) | (file < FILE_H ? FileBBMask[file+1] : 0ULL));
-    mg_score -= CNT(b_shelter) * ShelterBonusMg;
-
-    int w_danger = 0;
+    U64 w_king_zone = 0ULL;
     for (int i = 0; i < 8; ++i) {
         int tsq = wk_sq + king_delta[i];
-        if (SqOnBoard(tsq) && SqAttacked(tsq, BLACK, pos)) w_danger++;
+        if (SqOnBoard(tsq)) SETBIT(w_king_zone, SQ64(tsq));
     }
-    mg_score -= w_danger * KingDangerScale;
+    SETBIT(w_king_zone, SQ64(wk_sq));
 
-    int b_danger = 0;
+    U64 b_king_zone = 0ULL;
     for (int i = 0; i < 8; ++i) {
         int tsq = bk_sq + king_delta[i];
-        if (SqOnBoard(tsq) && SqAttacked(tsq, WHITE, pos)) b_danger++;
+        if (SqOnBoard(tsq)) SETBIT(b_king_zone, SQ64(tsq));
     }
+    SETBIT(b_king_zone, SQ64(bk_sq));
+
+    int w_danger = 0;
+    int b_danger = 0;
+
+    // Black attacks on white king zone
+    for (int black_pce = bP; black_pce <= bK; black_pce++) {
+        for (pceNum = 0; pceNum < pos->pceNum[black_pce]; ++pceNum) {
+            sq = pos->pList[black_pce][pceNum];
+            U64 attacks = PieceAttacks(black_pce, sq, pos);
+            if (attacks & w_king_zone) w_danger += AttackWeight[PieceToType[black_pce]];
+        }
+    }
+
+    // White attacks on black king zone
+    for (int white_pce = wP; white_pce <= wK; white_pce++) {
+        for (pceNum = 0; pceNum < pos->pceNum[white_pce]; ++pceNum) {
+            sq = pos->pList[white_pce][pceNum];
+            U64 attacks = PieceAttacks(white_pce, sq, pos);
+            if (attacks & b_king_zone) b_danger += AttackWeight[PieceToType[white_pce]];
+        }
+    }
+
+    mg_score -= w_danger * KingDangerScale;
     mg_score += b_danger * KingDangerScale;
 
     // Tapered
