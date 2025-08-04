@@ -1,15 +1,6 @@
 // movegen.c
-/*
 #include "stdio.h"
 #include "defs.h"
-
-#define MOVE(f,t,ca,pro,fl) ( (f) | ((t) << 7) | ( (ca) << 14 ) | ( (pro) << 20 ) | (fl))
-#define SQOFFBOARD(sq) (FilesBrd[(sq)]==OFFBOARD)
-*/
-// movegen.c
-#include "stdio.h"
-#include "defs.h"
-#include <math.h>  // For log in LMR, but not needed here
 
 #define MOVE(f,t,ca,pro,fl) ( (f) | ((t) << 7) | ( (ca) << 14 ) | ( (pro) << 20 ) | (fl))
 #define SQOFFBOARD(sq) (FilesBrd[(sq)]==OFFBOARD)
@@ -38,24 +29,24 @@ const U64 bishop_magics[64] = {
 };
 
 const U64 rook_masks[64] = {
-0x1010101010101feULL, 0x2020202020202fdULL, 0x4040404040404fbULL, 0x8080808080808f7ULL, 0x10101010101010efULL, 0x20202020202020dfULL, 0x40404040404040bfULL, 0x808080808080807fULL, 
-0x10101010101fe01ULL, 0x20202020202fd02ULL, 0x40404040404fb04ULL, 0x80808080808f708ULL, 0x101010101010ef10ULL, 0x202020202020df20ULL, 0x404040404040bf40ULL, 0x8080808080807f80ULL, 
-0x101010101fe0101ULL, 0x202020202fd0202ULL, 0x404040404fb0404ULL, 0x808080808f70808ULL, 0x1010101010ef1010ULL, 0x2020202020df2020ULL, 0x4040404040bf4040ULL, 0x80808080807f8080ULL, 
-0x1010101fe010101ULL, 0x2020202fd020202ULL, 0x4040404fb040404ULL, 0x8080808f7080808ULL, 0x10101010ef101010ULL, 0x20202020df202020ULL, 0x40404040bf404040ULL, 0x808080807f808080ULL, 
-0x10101fe01010101ULL, 0x20202fd02020202ULL, 0x40404fb04040404ULL, 0x80808f708080808ULL, 0x101010ef10101010ULL, 0x202020df20202020ULL, 0x404040bf40404040ULL, 0x8080807f80808080ULL, 
-0x101fe0101010101ULL, 0x202fd0202020202ULL, 0x404fb0404040404ULL, 0x808f70808080808ULL, 0x1010ef1010101010ULL, 0x2020df2020202020ULL, 0x4040bf4040404040ULL, 0x80807f8080808080ULL, 
-0x1fe010101010101ULL, 0x2fd020202020202ULL, 0x4fb040404040404ULL, 0x8f7080808080808ULL, 0x10ef101010101010ULL, 0x20df2020202020ULL, 0x40bf404040404040ULL, 0x807f808080808080ULL, 
+0x1010101010101feULL, 0x2020202020202fdULL, 0x4040404040404fbULL, 0x8080808080808f7ULL, 0x10101010101010efULL, 0x20202020202020dfULL, 0x40404040404040bfULL, 0x808080808080807fULL,
+0x10101010101fe01ULL, 0x20202020202fd02ULL, 0x40404040404fb04ULL, 0x80808080808f708ULL, 0x101010101010ef10ULL, 0x202020202020df20ULL, 0x404040404040bf40ULL, 0x8080808080807f80ULL,
+0x101010101fe0101ULL, 0x202020202fd0202ULL, 0x404040404fb0404ULL, 0x808080808f70808ULL, 0x1010101010ef1010ULL, 0x2020202020df2020ULL, 0x4040404040bf4040ULL, 0x80808080807f8080ULL,
+0x1010101fe010101ULL, 0x2020202fd020202ULL, 0x4040404fb040404ULL, 0x8080808f7080808ULL, 0x10101010ef101010ULL, 0x20202020df202020ULL, 0x40404040bf404040ULL, 0x808080807f808080ULL,
+0x10101fe01010101ULL, 0x20202fd02020202ULL, 0x40404fb04040404ULL, 0x80808f708080808ULL, 0x101010ef10101010ULL, 0x202020df20202020ULL, 0x404040bf40404040ULL, 0x8080807f80808080ULL,
+0x101fe0101010101ULL, 0x202fd0202020202ULL, 0x404fb0404040404ULL, 0x808f70808080808ULL, 0x1010ef1010101010ULL, 0x2020df2020202020ULL, 0x4040bf4040404040ULL, 0x80807f8080808080ULL,
+0x1fe010101010101ULL, 0x2fd020202020202ULL, 0x4fb040404040404ULL, 0x8f7080808080808ULL, 0x10ef101010101010ULL, 0x20df2020202020ULL, 0x40bf404040404040ULL, 0x807f808080808080ULL,
 0xfe01010101010101ULL, 0xfd02020202020202ULL, 0xfb04040404040404ULL, 0xf708080808080808ULL, 0xef10101010101010ULL, 0xdf20202020202020ULL, 0xbf40404040404040ULL, 0x7f80808080808080ULL 
 };
 
 const U64 bishop_masks[64] = {
-0x8040201008040200ULL, 0x80402010080500ULL, 0x804020110a00ULL, 0x8041221400ULL, 0x182442800ULL, 0x10204885000ULL, 0x102040810a000ULL, 0x102040810204000ULL, 
-0x4020100804020002ULL, 0x8040201008050005ULL, 0x804020110a000aULL, 0x804122140014ULL, 0x18244280028ULL, 0x1020488500050ULL, 0x102040810a000a0ULL, 0x204081020400040ULL, 
-0x2010080402000204ULL, 0x4020100805000508ULL, 0x804020110a000a11ULL, 0x80412214001422ULL, 0x1824428002844ULL, 0x102048850005088ULL, 0x2040810a000a010ULL, 0x408102040004020ULL, 
-0x1008040200020408ULL, 0x2010080500050810ULL, 0x4020110a000a1120ULL, 0x8041221400142241ULL, 0x182442800284482ULL, 0x204885000508804ULL, 0x40810a000a01008ULL, 0x810204000402010ULL, 
-0x804020002040810ULL, 0x1008050005081020ULL, 0x20110a000a112040ULL, 0x4122140014224180ULL, 0x8244280028448201ULL, 0x488500050880402ULL, 0x810a000a0100804ULL, 0x1020400040201008ULL, 
-0x402000204081020ULL, 0x805000508102040ULL, 0x110a000a11204080ULL, 0x2214001422418000ULL, 0x4428002844820100ULL, 0x8850005088040201ULL, 0x10a000a010080402ULL, 0x2040004020100804ULL, 
-0x200020408102040ULL, 0x500050810204080ULL, 0xa000a1120408000ULL, 0x1400142241800000ULL, 0x2800284482010000ULL, 0x5000508804020100ULL, 0xa000a01008040201ULL, 0x4000402010080402ULL, 
+0x8040201008040200ULL, 0x80402010080500ULL, 0x804020110a00ULL, 0x8041221400ULL, 0x182442800ULL, 0x10204885000ULL, 0x102040810a000ULL, 0x102040810204000ULL,
+0x4020100804020002ULL, 0x8040201008050005ULL, 0x804020110a000aULL, 0x804122140014ULL, 0x18244280028ULL, 0x1020488500050ULL, 0x102040810a000a0ULL, 0x204081020400040ULL,
+0x2010080402000204ULL, 0x4020100805000508ULL, 0x804020110a000a11ULL, 0x80412214001422ULL, 0x1824428002844ULL, 0x102048850005088ULL, 0x2040810a000a010ULL, 0x408102040004020ULL,
+0x1008040200020408ULL, 0x2010080500050810ULL, 0x4020110a000a1120ULL, 0x8041221400142241ULL, 0x182442800284482ULL, 0x204885000508804ULL, 0x40810a000a01008ULL, 0x810204000402010ULL,
+0x804020002040810ULL, 0x1008050005081020ULL, 0x20110a000a112040ULL, 0x4122140014224180ULL, 0x8244280028448201ULL, 0x488500050880402ULL, 0x810a000a0100804ULL, 0x1020400040201008ULL,
+0x402000204081020ULL, 0x805000508102040ULL, 0x110a000a11204080ULL, 0x2214001422418000ULL, 0x4428002844820100ULL, 0x8850005088040201ULL, 0x10a000a010080402ULL, 0x2040004020100804ULL,
+0x200020408102040ULL, 0x500050810204080ULL, 0xa000a1120408000ULL, 0x1400142241800000ULL, 0x2800284482010000ULL, 0x5000508804020100ULL, 0xa000a01008040201ULL, 0x4000402010080402ULL,
 0x2040810204080ULL, 0x5081020408000ULL, 0xa112040800000ULL, 0x14224180000000ULL, 0x28448201000000ULL, 0x50880402010000ULL, 0xa0100804020100ULL, 0x40201008040201ULL 
 };
 
@@ -83,8 +74,6 @@ const int bishop_shifts[64] = {
 
 U64 rook_attacks[64][4096];
 U64 bishop_attacks[64][512];
-
-
 
 // Function to compute real rook attacks for init
 U64 compute_rook_attacks(int sq, U64 occ) {
@@ -124,7 +113,54 @@ U64 compute_bishop_attacks(int sq, U64 occ) {
     return attacks;
 }
 
+// Init function for sliders (call in AllInit())
+void InitSliders() {
+    // Rook attacks
+    for (int sq = 0; sq < 64; sq++) {
+        U64 mask = rook_masks[sq];
+        int bits = 64 - rook_shifts[sq];
+        U64 num_occ = 1ULL << bits;
+        for (U64 i = 0; i < num_occ; i++) {
+            U64 occ = 0ULL;
+            U64 temp = mask;
+            int bit = 0;
+            do {
+                if (temp) {
+                    int ls1b = POP(&temp);
+                    if (i & (1ULL << bit)) {
+                        occ |= (1ULL << ls1b);
+                    }
+                    bit++;
+                }
+            } while (temp);
+            U64 key = (occ * rook_magics[sq]) >> rook_shifts[sq];
+            rook_attacks[sq][key] = compute_rook_attacks(sq, occ);
+        }
+    }
 
+    // Bishop attacks
+    for (int sq = 0; sq < 64; sq++) {
+        U64 mask = bishop_masks[sq];
+        int bits = 64 - bishop_shifts[sq];
+        U64 num_occ = 1ULL << bits;
+        for (U64 i = 0; i < num_occ; i++) {
+            U64 occ = 0ULL;
+            U64 temp = mask;
+            int bit = 0;
+            do {
+                if (temp) {
+                    int ls1b = POP(&temp);
+                    if (i & (1ULL << bit)) {
+                        occ |= (1ULL << ls1b);
+                    }
+                    bit++;
+                }
+            } while (temp);
+            U64 key = (occ * bishop_magics[sq]) >> bishop_shifts[sq];
+            bishop_attacks[sq][key] = compute_bishop_attacks(sq, occ);
+        }
+    }
+}
 
 U64 get_rook_attacks(int sq, U64 occ) {
     occ &= rook_masks[sq];
@@ -139,6 +175,7 @@ U64 get_bishop_attacks(int sq, U64 occ) {
     occ >>= bishop_shifts[sq];
     return bishop_attacks[sq][occ];
 }
+
 const int LoopSlidePce[8] = {
  wB, wR, wQ, 0, bB, bR, bQ, 0
 };
@@ -244,6 +281,9 @@ static void AddWhitePawnCapMove( const S_BOARD *pos, const int from, const int t
         AddCaptureMove(pos, MOVE(from,to,cap,EMPTY,0), list);
     }
 }
+
+
+// In GenerateAllMoves and GenerateAllCaps, ensure occ is declared as U64 occ = pos->occupied[BOTH]; at the top of each function if not already present.
 static void AddWhitePawnMove( const S_BOARD *pos, const int from, const int to, S_MOVELIST *list ) {
     ASSERT(SqOnBoard(from));
     ASSERT(SqOnBoard(to));
@@ -387,7 +427,7 @@ void GenerateAllMoves(const S_BOARD *pos, S_MOVELIST *list) {
                 dir = PceDir[pce][index];
                 t_sq = sq + dir;
                 while(!SQOFFBOARD(t_sq)) {
-                    // BLACK ^ 1 == WHITE       WHITE ^ 1 == BLACK
+                    // BLACK ^ 1 == WHITE       WHITE ^ 1 == BLACK
                     if(pos->pieces[t_sq] != EMPTY) {
                         if( PieceCol[pos->pieces[t_sq]] == (side ^ 1)) {
                             AddCaptureMove(pos, MOVE(sq, t_sq, pos->pieces[t_sq], EMPTY, 0), list);
@@ -415,7 +455,7 @@ void GenerateAllMoves(const S_BOARD *pos, S_MOVELIST *list) {
                 if(SQOFFBOARD(t_sq)) {
                     continue;
                 }
-                // BLACK ^ 1 == WHITE       WHITE ^ 1 == BLACK
+                // BLACK ^ 1 == WHITE       WHITE ^ 1 == BLACK
                 if(pos->pieces[t_sq] != EMPTY) {
                     if( PieceCol[pos->pieces[t_sq]] == (side ^ 1)) {
                         AddCaptureMove(pos, MOVE(sq, t_sq, pos->pieces[t_sq], EMPTY, 0), list);
@@ -439,6 +479,7 @@ void GenerateAllCaps(const S_BOARD *pos, S_MOVELIST *list) {
     int dir = 0;
     int index = 0;
     int pceIndex = 0;
+    U64 occ = pos->occupied[BOTH];
     if(side == WHITE) {
         for(pceNum = 0; pceNum < pos->pceNum[wP]; ++pceNum) {
             sq = pos->pList[wP][pceNum];
@@ -486,18 +527,19 @@ void GenerateAllCaps(const S_BOARD *pos, S_MOVELIST *list) {
         for(pceNum = 0; pceNum < pos->pceNum[pce]; ++pceNum) {
             sq = pos->pList[pce][pceNum];
             ASSERT(SqOnBoard(sq));
-            for(index = 0; index < NumDir[pce]; ++index) {
-                dir = PceDir[pce][index];
-                t_sq = sq + dir;
-                while(!SQOFFBOARD(t_sq)) {
-                    // BLACK ^ 1 == WHITE       WHITE ^ 1 == BLACK
-                    if(pos->pieces[t_sq] != EMPTY) {
-                        if( PieceCol[pos->pieces[t_sq]] == (side ^ 1)) {
-                            AddCaptureMove(pos, MOVE(sq, t_sq, pos->pieces[t_sq], EMPTY, 0), list);
-                        }
-                        break;
+            U64 attacks = 0ULL;
+            if (PieceBishopQueen[pce]) {
+                attacks = get_bishop_attacks(sq, occ);
+            }
+            if (PieceRookQueen[pce]) {
+                attacks |= get_rook_attacks(sq, occ);
+            }
+            while (attacks) {
+                t_sq = POP(&attacks);
+                if(pos->pieces[t_sq] != EMPTY) {
+                    if( PieceCol[pos->pieces[t_sq]] == (side ^ 1)) {
+                        AddCaptureMove(pos, MOVE(sq, t_sq, pos->pieces[t_sq], EMPTY, 0), list);
                     }
-                    t_sq += dir;
                 }
             }
         }
@@ -517,7 +559,7 @@ void GenerateAllCaps(const S_BOARD *pos, S_MOVELIST *list) {
                 if(SQOFFBOARD(t_sq)) {
                     continue;
                 }
-                // BLACK ^ 1 == WHITE       WHITE ^ 1 == BLACK
+                // BLACK ^ 1 == WHITE       WHITE ^ 1 == BLACK
                 if(pos->pieces[t_sq] != EMPTY) {
                     if( PieceCol[pos->pieces[t_sq]] == (side ^ 1)) {
                         AddCaptureMove(pos, MOVE(sq, t_sq, pos->pieces[t_sq], EMPTY, 0), list);
@@ -530,44 +572,47 @@ void GenerateAllCaps(const S_BOARD *pos, S_MOVELIST *list) {
     }
     ASSERT(MoveListOk(list,pos));
 }
-
+/*
 // Init function for sliders (call in AllInit())
 void InitSliders() {
     for (int sq = 0; sq < 64; sq++) {
         U64 mask = rook_masks[sq];
         int bits = 64 - rook_shifts[sq];
-        for (int i = 0; i < (1 << bits); i++) {
+        U64 num_occ = 1ULL << bits;
+        for (U64 i = 0; i < num_occ; i++) {
             U64 occ = 0ULL;
-            int bitpos = 0;
-            U64 temp_mask = mask;
-            while (temp_mask) {
-                int ls1b = POP(&temp_mask);
-                if (i & (1 << bitpos)) {
+            U64 temp = mask;
+            int bit = 0;
+            while (temp) {
+                int ls1b = POP(&temp);
+                if (i & (1ULL << bit)) {
                     occ |= (1ULL << ls1b);
                 }
-                bitpos++;
+                bit++;
             }
-            U64 index = (occ * rook_magics[sq]) >> rook_shifts[sq];
-            rook_attacks[sq][index] = compute_rook_attacks(sq, occ);
+            U64 key = (occ * rook_magics[sq]) >> rook_shifts[sq];
+            rook_attacks[sq][key] = compute_rook_attacks(sq, occ);
         }
     }
 
     for (int sq = 0; sq < 64; sq++) {
         U64 mask = bishop_masks[sq];
         int bits = 64 - bishop_shifts[sq];
-        for (int i = 0; i < (1 << bits); i++) {
+        U64 num_occ = 1ULL << bits;
+        for (U64 i = 0; i < num_occ; i++) {
             U64 occ = 0ULL;
-            int bitpos = 0;
-            U64 temp_mask = mask;
-            while (temp_mask) {
-                int ls1b = POP(&temp_mask);
-                if (i & (1 << bitpos)) {
+            U64 temp = mask;
+            int bit = 0;
+            while (temp) {
+                int ls1b = POP(&temp);
+                if (i & (1ULL << bit)) {
                     occ |= (1ULL << ls1b);
                 }
-                bitpos++;
+                bit++;
             }
-            U64 index = (occ * bishop_magics[sq]) >> bishop_shifts[sq];
-            bishop_attacks[sq][index] = compute_bishop_attacks(sq, occ);
+            U64 key = (occ * bishop_magics[sq]) >> bishop_shifts[sq];
+            bishop_attacks[sq][key] = compute_bishop_attacks(sq, occ);
         }
     }
 }
+*/
