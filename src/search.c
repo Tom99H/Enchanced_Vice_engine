@@ -148,7 +148,7 @@ static int Quiescence(int alpha, int beta, S_BOARD *pos, S_SEARCHINFO *info) {
 
 	return alpha;
 }
-
+/*
 static int AlphaBeta(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, int DoNull) {
 
 	ASSERT(CheckBoard(pos));
@@ -284,6 +284,145 @@ static int AlphaBeta(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO 
 	}
 
 	return alpha;
+}
+*/
+
+static int AlphaBeta(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, int DoNull) {
+    ASSERT(CheckBoard(pos));
+    ASSERT(beta > alpha);
+    ASSERT(depth >= 0);
+
+    if (depth <= 0) {
+        return Quiescence(alpha, beta, pos, info);
+    }
+
+    if ((info->nodes & 2047) == 0) {
+        CheckUp(info);
+    }
+
+    info->nodes++;
+
+    if ((IsRepetition(pos) || pos->fiftyMove >= 100) && pos->ply) {
+        return 0;
+    }
+
+    if (pos->ply > MAXDEPTH - 1) {
+        return EvalPosition(pos);
+    }
+
+    int InCheck = SqAttacked(pos->KingSq[pos->side], pos->side ^ 1, pos);
+    if (InCheck == TRUE) {
+        depth++;
+    }
+
+    int Score = -INFINITE;
+    int PvMove = NOMOVE;
+
+    if (ProbeHashEntry(pos, &PvMove, &Score, alpha, beta, depth) == TRUE) {
+        pos->HashTable->cut++;
+        return Score;
+    }
+
+    if (DoNull && !InCheck && pos->ply && (pos->bigPce[pos->side] > 0) && depth >= 4) {
+        MakeNullMove(pos);
+        Score = -AlphaBeta(-beta, -beta + 1, depth - 4, pos, info, FALSE);  // R=3 null-move
+        TakeNullMove(pos);
+        if (info->stopped == TRUE) {
+            return 0;
+        }
+        if (Score >= beta && abs(Score) < ISMATE) {
+            info->nullCut++;
+            return beta;
+        }
+    }
+
+    S_MOVELIST list[1];
+    GenerateAllMoves(pos, list);
+
+    int MoveNum = 0;
+    int Legal = 0;
+    int OldAlpha = alpha;
+    int BestMove = NOMOVE;
+    int BestScore = -INFINITE;
+    Score = -INFINITE;
+    int pvNode = (beta - alpha > 1);  // Detect PV nodes for later optimizations
+
+    // Prioritize PV move
+    if (PvMove != NOMOVE) {
+        for (MoveNum = 0; MoveNum < list->count; ++MoveNum) {
+            if (list->moves[MoveNum].move == PvMove) {
+                list->moves[MoveNum].score = 2000000;
+                break;
+            }
+        }
+    }
+
+    for (MoveNum = 0; MoveNum < list->count; ++MoveNum) {
+        PickNextMove(MoveNum, list);
+
+        if (!MakeMove(pos, list->moves[MoveNum].move)) {
+            continue;
+        }
+
+        Legal++;
+
+        // PVS: Full window for first move, zero-window for others
+        if (Legal == 1) {
+            Score = -AlphaBeta(-beta, -alpha, depth - 1, pos, info, TRUE);
+        } else {
+            Score = -AlphaBeta(-alpha - 1, -alpha, depth - 1, pos, info, TRUE);
+            if (Score > alpha && Score < beta) {  // Re-search if fails high on zero-window
+                Score = -AlphaBeta(-beta, -alpha, depth - 1, pos, info, TRUE);
+            }
+        }
+
+        TakeMove(pos);
+
+        if (info->stopped == TRUE) {
+            return 0;
+        }
+
+        if (Score > BestScore) {
+            BestScore = Score;
+            BestMove = list->moves[MoveNum].move;
+            if (Score > alpha) {
+                if (Score >= beta) {
+                    if (Legal == 1) {
+                        info->fhf++;
+                    }
+                    info->fh++;
+                    if (!(list->moves[MoveNum].move & MFLAGCAP)) {
+                        pos->searchKillers[1][pos->ply] = pos->searchKillers[0][pos->ply];
+                        pos->searchKillers[0][pos->ply] = list->moves[MoveNum].move;
+                    }
+                    StoreHashEntry(pos, BestMove, beta, HFBETA, depth);
+                    return beta;
+                }
+                alpha = Score;
+                if (!(list->moves[MoveNum].move & MFLAGCAP)) {
+                    pos->searchHistory[pos->pieces[FROMSQ(BestMove)]][TOSQ(BestMove)] += depth * depth;  // Square history for better tuning
+                }
+            }
+        }
+    }
+
+    if (Legal == 0) {
+        if (InCheck) {
+            return -INFINITE + pos->ply;
+        } else {
+            return 0;
+        }
+    }
+
+    ASSERT(alpha >= OldAlpha);
+
+    if (alpha != OldAlpha) {
+        StoreHashEntry(pos, BestMove, BestScore, HFEXACT, depth);
+    } else {
+        StoreHashEntry(pos, BestMove, alpha, HFALPHA, depth);
+    }
+
+    return alpha;
 }
 
 void SearchPosition(S_BOARD *pos, S_SEARCHINFO *info) {
