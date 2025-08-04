@@ -104,7 +104,7 @@ typedef struct {
 
 	int pieces[BRD_SQ_NUM];
 	U64 pawns[3];
-	//U64 occupied[3]; //TODO:ADDED
+	U64 occupied[3]; //TODO:ADDED
 
 	int KingSq[2];
 
@@ -298,6 +298,7 @@ extern void GenerateAllMoves(const S_BOARD *pos, S_MOVELIST *list);
 extern void GenerateAllCaps(const S_BOARD *pos, S_MOVELIST *list);
 extern int MoveExists(S_BOARD *pos, const int move);
 extern void InitMvvLva();
+extern void InitSliders();
 
 // makemove.c
 extern int MakeMove(S_BOARD *pos, int move);
@@ -340,43 +341,3 @@ extern void CleanPolyBook();
 extern void InitPolyBook() ;
 
 #endif
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
