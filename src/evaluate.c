@@ -2,6 +2,7 @@
 
 #include "stdio.h"
 #include "defs.h"
+#include "nnue_eval.h"
 
 const int PawnIsolated = -10;
 const int PawnPassed[8] = { 0, 5, 10, 20, 35, 60, 100, 200 }; 
@@ -103,7 +104,7 @@ int MaterialDraw(const S_BOARD *pos) {
 }
 
 #define ENDGAME_MAT (1 * PieceVal[wR] + 2 * PieceVal[wN] + 2 * PieceVal[wP] + PieceVal[wK])
-
+/*
 int EvalPosition(const S_BOARD *pos) {
 
 	ASSERT(CheckBoard(pos));
@@ -273,7 +274,12 @@ int EvalPosition(const S_BOARD *pos) {
 		return -score;
 	}	
 }
-
+*/
+int EvalPosition(const S_BOARD *pos) {
+    int score =  evaluate_nnue(pos);  // Wrapper call to NNUE
+	printf("NNUE Eval: %d\n", score);  // Debug to see if called and values
+	return score;
+}
 
 
 

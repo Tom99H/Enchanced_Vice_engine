@@ -3,6 +3,7 @@
 #include "defs.h"
 #include "stdio.h"
 #include "stdlib.h"
+#include "nnue_eval.h"
 
 #define RAND_64 	((U64)rand() | \
 					(U64)rand() << 15 | \
@@ -188,4 +189,7 @@ void AllInit() {
 	InitEvalMasks();
 	InitMvvLva();
 	InitPolyBook();
+
+	//init_nnue("c:\\Users\\tomas\\visual_studio_code\\vice\\Vice11\\src\\nn-62ef826d1a6d.nnue");
+	init_nnue("nn-62ef826d1a6d.nnue");
 }
