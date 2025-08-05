@@ -188,5 +188,4 @@ void AllInit() {
 	InitEvalMasks();
 	InitMvvLva();
 	InitPolyBook();
-	InitSliders();
 }

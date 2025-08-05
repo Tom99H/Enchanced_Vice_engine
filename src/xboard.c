@@ -304,7 +304,6 @@ void Console_Loop(S_BOARD *pos, S_SEARCHINFO *info) {
 			printf("time x - set thinking time to x seconds (depth still applies if set)\n");
 			printf("view - show current depth and movetime settings\n");
 			printf("setboard x - set position to fen x\n");
-			printf("perft x - run perft test to depth x\n"); // TODO: ADDED
 			printf("** note ** - to reset time and depth, set to 0\n");
 			printf("enter moves using b7b8q notation\n\n\n");
 			continue;
@@ -388,17 +387,6 @@ void Console_Loop(S_BOARD *pos, S_SEARCHINFO *info) {
 		if(!strcmp(command, "go")) {
 			engineSide = pos->side;
 			continue;
-		}
-
-		if(!strcmp(command, "perft")) { //TODO: ADDED 
-            int perftDepth = 0;
-            sscanf(inBuf, "perft %d", &perftDepth);
-            if(perftDepth==0) {
-                printf("Invalid depth. Usage: perft x\n");
-            } else {
-                PerftTest(perftDepth, pos);
-            }
-            continue;
 		}
 
 		move = ParseMove(inBuf, pos);
