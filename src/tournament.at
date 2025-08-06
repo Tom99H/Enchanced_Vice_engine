@@ -4,7 +4,7 @@ Type=0
 CurrSwissRound=0
 Rounds=10
 CurrentPair=1
-CurrentRound=3
+CurrentRound=4
 Level=5 -1\1/-1#1@-1|1
 [Options]
 QuitAfterTournament=0
@@ -66,13 +66,19 @@ OS=Windows 10 Enterprise Professional (Build 9200) 64 bit
 Website=
 E-Mail=
 ArenaVersion=Arena 3.5.1
-LastGameDate=2025.08.05
-LastGameTime=17:11:28
+LastGameDate=2025.08.06
+LastGameTime=14:55:02
 [PairingResults]
 Rybka 2.3.2a 64 bit ------ Vice=11111?
 Rybka 2.3.2a 32 bit ------ Rybka 2.3.2a 64 bit=0?
 Rybka 2.3.2a 64 bit ------ Vice [001]=1?
-Vice ------ Vice [001]=½1½
+Vice ------ Vice [001]=½1½½?
+Vice ------ Vice_pruning=0½1½½0100½
+Vice ------ Vice_pruning_eval=?
+Vice_original ------ Vice_pruning_eval=11111
+Vice_original ------ Vice_pruning=0½½0?
+Vice_original ------ Vice_prunning_eval_new=11?
+Vice_nnue ------ Vice_original=½101
 [Participants]
-Engine1=Vice [001]
-Engine2=Vice
+Engine1=Vice_original
+Engine2=Vice_nnue

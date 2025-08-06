@@ -2,6 +2,8 @@
 
 #include "stdio.h"
 #include "defs.h"
+
+// include NNUE probe library wrapper header
 #include "nnue_eval.h"
 
 const int PawnIsolated = -10;
@@ -104,196 +106,60 @@ int MaterialDraw(const S_BOARD *pos) {
 }
 
 #define ENDGAME_MAT (1 * PieceVal[wR] + 2 * PieceVal[wN] + 2 * PieceVal[wP] + PieceVal[wK])
-/*
-int EvalPosition(const S_BOARD *pos) {
 
-	ASSERT(CheckBoard(pos));
+// Stockfish NNUE piece encoding
+int nnue_pieces[13] = {0, 6, 5, 4, 3, 2, 1, 12, 11, 10, 9, 8, 7};
 
-	int pce;
-	int pceNum;
-	int sq;
-	int score = pos->material[WHITE] - pos->material[BLACK];
-	
-	if(!pos->pceNum[wP] && !pos->pceNum[bP] && MaterialDraw(pos) == TRUE) {
-		return 0;
-	}
-	
-	pce = wP;	
-	for(pceNum = 0; pceNum < pos->pceNum[pce]; ++pceNum) {
-		sq = pos->pList[pce][pceNum];
-		ASSERT(SqOnBoard(sq));
-		ASSERT(SQ64(sq)>=0 && SQ64(sq)<=63);
-		score += PawnTable[SQ64(sq)];	
-		
-		if( (IsolatedMask[SQ64(sq)] & pos->pawns[WHITE]) == 0) {
-			//printf("wP Iso:%s\n",PrSq(sq));
-			score += PawnIsolated;
-		}
-		
-		if( (WhitePassedMask[SQ64(sq)] & pos->pawns[BLACK]) == 0) {
-			//printf("wP Passed:%s\n",PrSq(sq));
-			score += PawnPassed[RanksBrd[sq]];
-		}
-		
-	}	
-
-	pce = bP;	
-	for(pceNum = 0; pceNum < pos->pceNum[pce]; ++pceNum) {
-		sq = pos->pList[pce][pceNum];
-		ASSERT(SqOnBoard(sq));
-		ASSERT(MIRROR64(SQ64(sq))>=0 && MIRROR64(SQ64(sq))<=63);
-		score -= PawnTable[MIRROR64(SQ64(sq))];	
-		
-		if( (IsolatedMask[SQ64(sq)] & pos->pawns[BLACK]) == 0) {
-			//printf("bP Iso:%s\n",PrSq(sq));
-			score -= PawnIsolated;
-		}
-		
-		if( (BlackPassedMask[SQ64(sq)] & pos->pawns[WHITE]) == 0) {
-			//printf("bP Passed:%s\n",PrSq(sq));
-			score -= PawnPassed[7 - RanksBrd[sq]];
-		}
-	}	
-	
-	pce = wN;	
-	for(pceNum = 0; pceNum < pos->pceNum[pce]; ++pceNum) {
-		sq = pos->pList[pce][pceNum];
-		ASSERT(SqOnBoard(sq));
-		ASSERT(SQ64(sq)>=0 && SQ64(sq)<=63);
-		score += KnightTable[SQ64(sq)];
-	}	
-
-	pce = bN;	
-	for(pceNum = 0; pceNum < pos->pceNum[pce]; ++pceNum) {
-		sq = pos->pList[pce][pceNum];
-		ASSERT(SqOnBoard(sq));
-		ASSERT(MIRROR64(SQ64(sq))>=0 && MIRROR64(SQ64(sq))<=63);
-		score -= KnightTable[MIRROR64(SQ64(sq))];
-	}			
-	
-	pce = wB;	
-	for(pceNum = 0; pceNum < pos->pceNum[pce]; ++pceNum) {
-		sq = pos->pList[pce][pceNum];
-		ASSERT(SqOnBoard(sq));
-		ASSERT(SQ64(sq)>=0 && SQ64(sq)<=63);
-		score += BishopTable[SQ64(sq)];
-	}	
-
-	pce = bB;	
-	for(pceNum = 0; pceNum < pos->pceNum[pce]; ++pceNum) {
-		sq = pos->pList[pce][pceNum];
-		ASSERT(SqOnBoard(sq));
-		ASSERT(MIRROR64(SQ64(sq))>=0 && MIRROR64(SQ64(sq))<=63);
-		score -= BishopTable[MIRROR64(SQ64(sq))];
-	}	
-
-	pce = wR;	
-	for(pceNum = 0; pceNum < pos->pceNum[pce]; ++pceNum) {
-		sq = pos->pList[pce][pceNum];
-		ASSERT(SqOnBoard(sq));
-		ASSERT(SQ64(sq)>=0 && SQ64(sq)<=63);
-		score += RookTable[SQ64(sq)];
-		
-		ASSERT(FileRankValid(FilesBrd[sq]));
-		
-		if(!(pos->pawns[BOTH] & FileBBMask[FilesBrd[sq]])) {
-			score += RookOpenFile;
-		} else if(!(pos->pawns[WHITE] & FileBBMask[FilesBrd[sq]])) {
-			score += RookSemiOpenFile;
-		}
-	}	
-
-	pce = bR;	
-	for(pceNum = 0; pceNum < pos->pceNum[pce]; ++pceNum) {
-		sq = pos->pList[pce][pceNum];
-		ASSERT(SqOnBoard(sq));
-		ASSERT(MIRROR64(SQ64(sq))>=0 && MIRROR64(SQ64(sq))<=63);
-		score -= RookTable[MIRROR64(SQ64(sq))];
-		ASSERT(FileRankValid(FilesBrd[sq]));
-		if(!(pos->pawns[BOTH] & FileBBMask[FilesBrd[sq]])) {
-			score -= RookOpenFile;
-		} else if(!(pos->pawns[BLACK] & FileBBMask[FilesBrd[sq]])) {
-			score -= RookSemiOpenFile;
-		}
-	}	
-	
-	pce = wQ;	
-	for(pceNum = 0; pceNum < pos->pceNum[pce]; ++pceNum) {
-		sq = pos->pList[pce][pceNum];
-		ASSERT(SqOnBoard(sq));
-		ASSERT(SQ64(sq)>=0 && SQ64(sq)<=63);
-		ASSERT(FileRankValid(FilesBrd[sq]));
-		if(!(pos->pawns[BOTH] & FileBBMask[FilesBrd[sq]])) {
-			score += QueenOpenFile;
-		} else if(!(pos->pawns[WHITE] & FileBBMask[FilesBrd[sq]])) {
-			score += QueenSemiOpenFile;
-		}
-	}	
-
-	pce = bQ;	
-	for(pceNum = 0; pceNum < pos->pceNum[pce]; ++pceNum) {
-		sq = pos->pList[pce][pceNum];
-		ASSERT(SqOnBoard(sq));
-		ASSERT(SQ64(sq)>=0 && SQ64(sq)<=63);
-		ASSERT(FileRankValid(FilesBrd[sq]));
-		if(!(pos->pawns[BOTH] & FileBBMask[FilesBrd[sq]])) {
-			score -= QueenOpenFile;
-		} else if(!(pos->pawns[BLACK] & FileBBMask[FilesBrd[sq]])) {
-			score -= QueenSemiOpenFile;
-		}
-	}	
-	//8/p6k/6p1/5p2/P4K2/8/5pB1/8 b - - 2 62 
-	pce = wK;
-	sq = pos->pList[pce][0];
-	ASSERT(SqOnBoard(sq));
-	ASSERT(SQ64(sq)>=0 && SQ64(sq)<=63);
-	
-	if( (pos->material[BLACK] <= ENDGAME_MAT) ) {
-		score += KingE[SQ64(sq)];
-	} else {
-		score += KingO[SQ64(sq)];
-	}
-	
-	pce = bK;
-	sq = pos->pList[pce][0];
-	ASSERT(SqOnBoard(sq));
-	ASSERT(MIRROR64(SQ64(sq))>=0 && MIRROR64(SQ64(sq))<=63);
-	
-	if( (pos->material[WHITE] <= ENDGAME_MAT) ) {
-		score -= KingE[MIRROR64(SQ64(sq))];
-	} else {
-		score -= KingO[MIRROR64(SQ64(sq))];
-	}
-	
-	if(pos->pceNum[wB] >= 2) score += BishopPair;
-	if(pos->pceNum[bB] >= 2) score -= BishopPair;
-	
-	if(pos->side == WHITE) {
-		return score;
-	} else {
-		return -score;
-	}	
+int EvalPosition(const S_BOARD *pos)
+{
+    // NNUE probe arrays
+    int pieces[33];
+    int squares[33];
+    
+    // NNUE probe arrays index
+    int index = 2;
+    
+    // loop over the pieces
+    for (int piece = 1; piece < 13; piece++)
+    {
+        // loop over the corresponsding squares
+        for(int pceNum = 0; pceNum < pos->pceNum[piece]; ++pceNum)
+        {            
+            // case white king
+            if (piece == wK)
+            {
+                // init pieces & squares arrays
+                pieces[0] = nnue_pieces[piece];
+                squares[0] = SQ64(pos->pList[piece][pceNum]);
+            }
+            
+            // case black king
+            else if (piece == bK)
+            {
+                // init pieces & squares arrays
+                pieces[1] = nnue_pieces[piece];
+                squares[1] = SQ64(pos->pList[piece][pceNum]);
+            }
+            
+            // all the other pieces regardless of order
+            else
+            {
+                // init pieces & squares arrays
+                pieces[index] = nnue_pieces[piece];
+                squares[index] = SQ64(pos->pList[piece][pceNum]);
+                
+                // increment the index
+                index++;
+            }
+        }
+        
+    }    
+    
+    // end piece and square arrays with zero terminating characters
+    pieces[index] = 0;
+    squares[index] = 0;
+    
+    // return NNUE score and give a penalty for 50 move rule counter increasing
+    // without this penakty engine might not mate in KQK or KRK endgames!
+    return evaluate_nnue(pos->side, pieces, squares) * (100 - pos->fiftyMove) / 100;
 }
-*/
-int EvalPosition(const S_BOARD *pos) {
-    int score =  evaluate_nnue(pos);  // Wrapper call to NNUE
-	printf("NNUE Eval: %d\n", score);  // Debug to see if called and values
-	return score;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
