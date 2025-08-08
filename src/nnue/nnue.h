@@ -102,7 +102,7 @@ int nnue_evaluate_pos(Position* pos);
 */
 void nnue_init(const char *evalFile);
 int nnue_evaluate(int player, int *pieces, int *squares);
-//int nnue_evaluate_incremental(int player, int *pieces, int *squares, NNUEdata **nnue);
+int nnue_evaluate_incremental(int player, int *pieces, int *squares, NNUEdata **nnue);
 int nnue_evaluate_fen(const char *fen);
 
 /**
