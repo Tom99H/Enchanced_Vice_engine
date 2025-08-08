@@ -48,8 +48,12 @@ void ClearHashTable(S_HASHTABLE *table) {
 void InitHashTable(S_HASHTABLE *table, const int MB) {  
 	
 	int HashSize = 0x100000 * MB;
-    table->numEntries = HashSize / sizeof(S_HASHENTRY);
-    table->numEntries -= 2;
+    unsigned int n = HashSize / sizeof(S_HASHENTRY);
+    // nejbližší nižší mocnina dvou
+    unsigned int pow2 = 1; 
+    while ((pow2 << 1) <= n) pow2 <<= 1;
+    table->numEntries = pow2;
+    table->indexMask  = pow2 - 1;
 	
 	if(table->pTable!=NULL) {
 		free(table->pTable);
@@ -68,7 +72,7 @@ void InitHashTable(S_HASHTABLE *table, const int MB) {
 
 int ProbeHashEntry(S_BOARD *pos, int *move, int *score, int alpha, int beta, int depth) {
 
-	int index = pos->posKey % pos->HashTable->numEntries;
+	int index = (int)(pos->posKey & pos->HashTable->indexMask);
 	
 	ASSERT(index >= 0 && index <= pos->HashTable->numEntries - 1);
     ASSERT(depth>=1&&depth<MAXDEPTH);
@@ -116,7 +120,7 @@ int ProbeHashEntry(S_BOARD *pos, int *move, int *score, int alpha, int beta, int
 
 void StoreHashEntry(S_BOARD *pos, const int move, int score, const int flags, const int depth) {
 
-	int index = pos->posKey % pos->HashTable->numEntries;
+	int index = (int)(pos->posKey & pos->HashTable->indexMask);
 	
 	ASSERT(index >= 0 && index <= pos->HashTable->numEntries - 1);
 	ASSERT(depth>=1&&depth<MAXDEPTH);

@@ -2,10 +2,10 @@
 TournamentName=tournament.at
 Type=0
 CurrSwissRound=0
-Rounds=10
+Rounds=3
 CurrentPair=1
-CurrentRound=4
-Level=5 -1\1/-1#1@-1|1
+CurrentRound=3
+Level=5 -1\3/-1#3@-1|3
 [Options]
 QuitAfterTournament=0
 ShutDownAfterTournament=0
@@ -66,8 +66,8 @@ OS=Windows 10 Enterprise Professional (Build 9200) 64 bit
 Website=
 E-Mail=
 ArenaVersion=Arena 3.5.1
-LastGameDate=2025.08.06
-LastGameTime=14:55:02
+LastGameDate=2025.08.08
+LastGameTime=14:48:06
 [PairingResults]
 Rybka 2.3.2a 64 bit ------ Vice=11111?
 Rybka 2.3.2a 32 bit ------ Rybka 2.3.2a 64 bit=0?
@@ -79,6 +79,10 @@ Vice_original ------ Vice_pruning_eval=11111
 Vice_original ------ Vice_pruning=0½½0?
 Vice_original ------ Vice_prunning_eval_new=11?
 Vice_nnue ------ Vice_original=½101
+Vice_nnue ------ Vice_nnue=?
+Rybka 2.3.2a 64 bit ------ Vice_nnue=½1?
+Rybka 2.3.2a 64 bit ------ Vice_gpt5_optimalized=11½?
+Vice_gpt5_optimalized ------ Vice_prunning_eval_new=111
 [Participants]
-Engine1=Vice_original
-Engine2=Vice_nnue
+Engine1=Vice_gpt5_optimalized
+Engine2=Vice_prunning_eval_new

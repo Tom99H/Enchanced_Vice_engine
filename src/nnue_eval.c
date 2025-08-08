@@ -40,3 +40,10 @@ int evaluate_fen_nnue(char *fen)
     // call NNUE probe lib function
     return nnue_evaluate_fen(fen);
 }
+/*
+int evaluate_nnue_incremental(int player, int *pieces, int *squares, void **nnue)
+{
+    // forward do C++: očekává NNUEdata** (3 sloty), ale jako void** to z C protlačíme
+    extern int nnue_evaluate_incremental(int, int*, int*, void**);
+    return nnue_evaluate_incremental(player, pieces, squares, nnue);
+}*/

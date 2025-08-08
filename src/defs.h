@@ -78,6 +78,8 @@ typedef struct {
 
 typedef struct {
 	S_HASHENTRY *pTable;
+	unsigned int indexMask;
+    unsigned int generation; // volitelné, pro replacement policy
 	int numEntries;
 	int newWrite;
 	int overWrite;
@@ -129,6 +131,7 @@ typedef struct {
 
 	int searchHistory[13][BRD_SQ_NUM];
 	int searchKillers[2][MAXDEPTH];
+	void *nnueAcc[3];
 
 } S_BOARD;
 

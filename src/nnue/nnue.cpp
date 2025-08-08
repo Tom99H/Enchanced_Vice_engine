@@ -4,6 +4,8 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "../nnue_eval.h"
+
 //--------------------
 #ifdef _MSC_VER
 #  define USE_AVX2   1
@@ -1281,6 +1283,7 @@ static bool load_eval_file(const char *evalFile)
 Interfaces
 */
 // nnue/nnue.cpp (simplified function defs)
+
 void nnue_init(const char *evalFile) {
     printf("Loading NNUE : %s\n", evalFile);
     fflush(stdout);
